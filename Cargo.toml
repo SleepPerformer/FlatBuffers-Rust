@@ -1,6 +1,6 @@
 [package]
 name = "flatbuffers-rust"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["SleepPerformer <337990443@qq.com>"]
 description = "FlatBuffers in Rust."
 license = "MIT/Apache-2.0"
