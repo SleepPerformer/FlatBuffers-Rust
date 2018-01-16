@@ -48,7 +48,6 @@ macro_rules! push_flatbuffervar {
     };
 }
 #[macro_export]
-// 返回 Result<>
 macro_rules! build_flatbuffer_or_error {
     ({ $( $var:expr,)*} $builder:ident ) => {
         {
@@ -280,9 +279,12 @@ impl FlatBufferBuilder {
                     for ele in message {
                         child.push(Some(ele));
                     }
+                    // println!("child is {:?}", child);
+                    
                     match self.build(&mut child, l) {
                         Ok(mut flatbuffer_child) => {
                             let (list_bytes, pivot) = flatbuffer_child.bytes();
+                            // println!("list_bytes is {:?}, pivot is {:?}", list_bytes, pivot);
                             self.add_flatbuffer_bytes(&mut flatbuffer, position, list_bytes.unwrap(), pivot as u32);
                         },
                         Err(e) => continue,

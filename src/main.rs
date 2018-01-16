@@ -301,12 +301,7 @@ fn main() {
     // ser_test_child_v2(init_struct_child("child_0"));
     let instance = init_struct(init_struct_child("child_0"), init_struct_child("child_1"), init_struct_child("child_2"));
     let mut test_message_flatbuffer = ser_test_message_v2(instance).unwrap();
-    
-    // println!("最新版本输出 {:?}", test_message_flatbuffer);
-    // println!("");
-    // let test_message_flatbuffer_2 = ser_test_message().unwrap();
-    // println!("上一版本输出 {:?}", test_message_flatbuffer_2);
-    
+
     let mut manager = FlatBufferManager::new();
 
     register_struct_info! {
