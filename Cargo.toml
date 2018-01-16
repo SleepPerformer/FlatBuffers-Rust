@@ -2,7 +2,8 @@
 name = "flatbuffers-rust"
 version = "0.1.1"
 authors = ["SleepPerformer <337990443@qq.com>"]
-description = "FlatBuffers in Rust."
+description = "FlatBuffers in Rust (To be continue)."
 license = "MIT/Apache-2.0"
+repository = "https://github.com/SleepPerformer/FlatBuffers-Rust.git"
 
 [dependencies]
