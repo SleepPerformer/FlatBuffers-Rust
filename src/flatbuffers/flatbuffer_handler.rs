@@ -1,14 +1,22 @@
+use flatbuffers::flatbuffer_manager::FlatBufferManager;
+
 static SEPARATOR: u8 = 0xff;
 #[derive(Debug)]
 // 在handler中做限制，防止人为访问内存出错
 pub struct FlatBufferHandler {}
 
 impl FlatBufferHandler {
+    pub fn get_field_bytes_pivot(&self, type_name: &str, field_name: &str, manager: &FlatBufferManager, data: &mut Vec<u8>, pivot: usize) -> Result<(Option<Vec<u8>>, usize), String> {
+        let mut vec = manager.to_local_vec(field_name, type_name).unwrap();
+        let mut position = manager.field_position(&mut vec).unwrap();
+        self.get_part_data_level(&mut position, pivot, &data)
+    }
     // 方法名不舒服
     // 从某一层获取到任意深层的任一数据
     // level = vec[4,2,3,1] 
     // 表示 当前“struct” 的第一个字段的 第3个字段的 第2个字段的 第4个字段
     pub fn get_part_data_level(&self, level:&mut Vec<usize>, root: usize, data: &Vec<u8>) -> Result<(Option<Vec<u8>>, usize), String> {
+        // println!("data is {:?}", data);
         let l = level.len();
         let mut want_vec = Vec::new();
         let mut want_root = 0;
@@ -21,7 +29,7 @@ impl FlatBufferHandler {
             Some(d) => { want_vec = d; want_root = child_root; },
             None => {
                 if 1 == l {
-                    return Ok((None, 0));
+                    return Ok((None, 0)); // 访问的部分是None
                 } else {
                     return Err(format!("访问层次有误"));
                 }
@@ -38,7 +46,7 @@ impl FlatBufferHandler {
                 Some(d) => { want_vec = d; want_root = child_root; },
                 None => {
                     if i == l {
-                        return Ok((None, 0));
+                        return Ok((None, 0)); // 访问的部分是None
                     } else {
                         return Err(format!("访问层次有误"));
                     }
@@ -56,6 +64,7 @@ impl FlatBufferHandler {
             // 这是个基本数据
             return Err(format!("{:?} is a primitive type", data));
         }
+        // println!("root is {:?}", root);
         let slot_num = data[root] as usize;
         if part > slot_num {
             // 越界
@@ -64,6 +73,7 @@ impl FlatBufferHandler {
         // println!("root is {}, root's value is {}", root, data[root]);
         // 得到偏移量 [root-(slot_num-part+1)*size, root-(slot_num-part)*size]
         let (start, child_root) = self.get_start(part, slot_num, root, data);
+        
         // println!("part2 start:{}, child root value is {}", start, data[child_root]);
         if start == 0 {
             // 该项数据为空
@@ -71,17 +81,24 @@ impl FlatBufferHandler {
         }
         // 计算 end 
         let end = self.get_end(part, slot_num, root, data);
+        
         // println!("end is {}", end);
         Ok((Some(data[start..end].to_vec()), child_root-start))
     }
     fn get_end(&self, part: usize, slot_num: usize, root: usize, data: &Vec<u8>) -> usize {
         let mut part = part;
+        // println!("part :{}", part);
         if slot_num == part {
-            return data.len()
+            return data.len();
         } else {
             loop {
                 part += 1;
-                let (end, root) = self.get_start(part, slot_num, root, data);
+                if slot_num == part && data[root - 4] == 0u8 {
+                    // 这里肯定还有问题
+                    return data.len();
+                }
+                let (end, pivot) = self.get_start(part, slot_num, root, data);
+                
                 // println!("第8字段开始值可能为{}", end);
                 if end != 0 {
                     return end;
@@ -93,7 +110,10 @@ impl FlatBufferHandler {
         let size = 4;
         let mut offset = 0;
         let mut scale = 1;
+        // println!("slot_num is {:?}", slot_num);
+        // println!("end = root-(slot_num-part)*size :{:?}, data.len is {}", root-(slot_num-part+1)*size, data.len());
         let offset_vec = data[root-(slot_num-part+1)*size..root-(slot_num-part)*size].to_vec();
+        // println!("offset_vec is {:?}", offset_vec);
         for i in 0..size {
             // println!("{:?}", offset_vec[i]);
             offset += (offset_vec[i] as usize) *scale;
@@ -102,6 +122,7 @@ impl FlatBufferHandler {
         // println!("offset is {:?}", offset);
         if offset == 0 {
             // 偏移为0 表示 None
+            // println!("进入 0, 0");
             return (0, 0);
         }
         let child_root = offset as usize + root;
