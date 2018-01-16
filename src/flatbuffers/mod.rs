@@ -1,4 +1,5 @@
 pub mod flatbuffer;
+#[macro_use]
 pub mod flatbuffer_builder;
 pub mod flatbuffer_helper;
 pub mod flatbuffer_var;
